@@ -12,7 +12,7 @@ Authenticate with ~/.rackspace_cloud_credentials File:
 username = my_username<br>
 api_key = 01234567890abcdef
 <br><br>
-Authenticate by passing arguments to this script.
+Authenticate by passing arguments to this scrip:t
 <br>
 python /path/to/this/script my_username 01234567890abcdef<br>
 &nbsp;&nbsp;&nbsp;&nbsp;NOTE: This method trumps the ~/.rackspace_cloud_credentials file!
