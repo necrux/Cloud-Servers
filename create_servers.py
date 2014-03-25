@@ -1,18 +1,18 @@
 #!/usr/bin/python
 
-##############################################################################################
-#Written by: Wes Henderson
-#3/7/2014
-#
-#This program utilizes Rackspace's Python SDK (pyrax) to create a specified number of servers.
-#
-#Known Issues:
-#
-#Possible Improvements:
-# Give the user the option to wait for networking information.
-#
-#Enjoy!
-##############################################################################################
+"""
+Written by: necrux
+3/7/2014
+
+This program utilizes Rackspace's Python SDK (pyrax) to create a specified number of servers.
+
+Known Issues:
+
+Possible Improvements:
+ Give the user the option to wait for networking information.
+
+Enjoy!
+"""
 
 import os
 from sys import argv
