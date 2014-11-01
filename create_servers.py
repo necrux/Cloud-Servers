@@ -118,12 +118,18 @@ def build_server(q):
         server_name = q.get()
         if ssh_auth == "y":
             print "Connecting to cloud to build server %s" % server_name
-            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
+            try:
+                print "print inside of try - before pyrax"
+                server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
+                print "print inside of try - after pyrax"
+            except:
+                print "Something went wrong connecting to cloud control"
+
             print "%s has started building" % server_name
             #pass
         else:
-            #server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
-            pass
+            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
+            #pass
         #pyrax.utils.wait_for_build(server, "status", ["ACTIVE", "ERROR"], interval=20, callback=None, attempts=0, verbose=False, verbose_atts="progress")
         #print "Name:", server.name
         #print "Root Password:", server.adminPass
@@ -138,10 +144,9 @@ def build_server(q):
         server_info.write("Admin Password: " + server.adminPass + "\n\n")
         server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
         server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
-        #count += 1
-        print "%s has finished, ending thread" % server_name
         q.task_done()
-        q.join()
+        print "%s has finished, ending thread" % server_name
+        
 
     except nexc.BadRequest as e:
         print "Bad image/flavor combination. Please try again. (wah wah wah)\n"
@@ -155,13 +160,15 @@ print "Size of build queue:\t%d" % sizeq
 def build_threads(target,q):
     count = 1
     for i in range(sizeq):
-        print "setting up worker thread %d" % count
+        #print "setting up worker thread %d" % count
         worker = Thread(target=target, args=(q,))
         worker.setDaemon(True)
         worker.start()
         count += 1
 
 build_threads(build_server,build_queue)
+
+build_queue.join()
 
 server_info.close()
 
