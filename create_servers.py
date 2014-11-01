@@ -4,6 +4,9 @@
 Written by: necrux
 3/7/2014
 
+Forked by: jay13yaj
+10/22/2014
+
 This program utilizes Rackspace's Python SDK (pyrax) to create a specified number of servers.
 
 Known Issues:
@@ -14,170 +17,40 @@ Possible Improvements:
 Enjoy!
 """
 
-import os,pyrax,threading
+import os,pyrax,threading,argparse,time
 from sys import argv
 from pyrax import utils
 from Queue import Queue
 from api_initialization import *
+from server_selection import *
+from threading import Thread
 import novaclient.exceptions as nexc #Used to catch exceptions from novaclient. Reference: https://community.rackspace.com/developers/f/7/t/894
 import pyrax.exceptions as pexc #Used to catch exceptions from pyrax. Reference: https://github.com/rackspace/pyrax/issues/83
 
-"""
-def api_initialization():
-    pyrax.set_setting("identity_type", "rackspace")
-    try:
-        progname, username, api_key = argv
-        pyrax.set_credentials(username, api_key)
-    except ValueError:
-        if os.path.isfile(os.path.expanduser("~/.rackspace_cloud_credentials")):
-            creds_file = os.path.expanduser("~/.rackspace_cloud_credentials")
-            try:
-                pyrax.set_credential_file(creds_file)
-            except pexc.AuthenticationFailed:
-                print "The credentials located in ~/.rackspace_cloud_credentials are not valid. Please provide the correct Username and API Key below.\n"
-                cred_prompt()
-        else:
-            cred_prompt()
-    except pexc.AuthenticationFailed:
-        if os.path.isfile(os.path.expanduser("~/.rackspace_cloud_credentials")):
-            print "The provided credentials are not valid; reverting to the ~/.rackspace_cloud_credentials file."
-            creds_file = os.path.expanduser("~/.rackspace_cloud_credentials")
-            try:
-                pyrax.set_credential_file(creds_file)
-            except pexc.AuthenticationFailed:
-                print "The credentials located in ~/.rackspace_cloud_credentials are not valid. Please provide the correct Username and API Key below.\n"
-                cred_prompt()
-        else:
-            print "The provided credentials are not valid; please enter them below.\n"
-            cred_prompt()
-"""
 
-def cred_prompt():
-    print """Before we can proceed, you will need to enter your username and API key. Protip: In the future you can authenticate with the following methods:
 
-Authenticate with ~/.rackspace_cloud_credentials File.
+# Removed API init and credentials prompt into seperate file for security and readability reasons.
+# Still need to add crypto-functions to the API keys and whatnot
+# Moved remaining functions to server_selection.py
 
-[rackspace_cloud]
-username = my_username
-api_key = 01234567890abcdef
 
-Authenticate by passing arguments to this script.
-
-python /path/to/this/script my_username 01234567890abcdef
-    NOTE: This method trumps the ~/.rackspace_cloud_credentials file!
-"""
-    while True:
-        username = raw_input("Rackspace Username%s" % prompt)
-        api_key = raw_input("Rackspace API Key%s" % prompt)
-        try:
-            pyrax.set_credentials(username, api_key)
-            break
-        except pexc.AuthenticationFailed:
-            print "The credentials provided are not valid. Please try again."
-            continue
-    cred_save = raw_input("Would you like for me to store these credentials in ~/.rackspace_cloud_credentials for you?%s" % ynprompt)
-    if cred_save.lower().startswith("y"):
-        cred_save_file = open(os.path.join(os.path.expanduser("~"), ".rackspace_cloud_credentials"), "w")
-        cred_save_file.write("[rackspace_cloud]\n" + "username = " + username + "\napi_key = " + api_key + "\n")
-        cred_save_file.close()   
-
-def region_selection():
-    print """\nWhat region would you like to build in?
-
-1) DFW
-2) ORD
-3) IAD
-4) SYD
-5) HKG
-6) LON
-"""
-    while True:
-        region = raw_input(prompt)
-        if region not in ("1","2","3","4","5","6"):
-            print "Not a valid selection."
-        else:
-            break
-    if region == "1":
-        region = "DFW"
-    elif region == "2":
-        region = "ORD"
-    elif region == "3":
-        region = "IAD"
-    elif region == "4":
-        region = "SYD"
-    elif region == "5":
-        region = "HKG"
-    elif region == "6":
-        region = "LON"
-    return region
-
-def server_selection():
-    #Displays a list of all available images, allows the user to select one, and performs input validation.
-    imgs = pyrax.connect_to_cloudservers(region=region).images.list()
-    count = 1
-    for img in imgs:
-        print count, ")", img.name
-        count += 1
-    total_count = len(imgs)
-    while True:
-        server = raw_input("\nSelect the server that you want to create by entering a number between 1 and %s.%s" % (total_count, prompt))
-        try:
-            server = int(server)
-            if server < 1 or server > total_count:
-                print "Selection out of range."
-            else:
-                break
-        except ValueError:
-            print "Not a valid selection."
-    count = 1
-    for img in imgs:
-        if count != server:
-            count += 1
-        else:
-            server_type = img.name
-            server_id = img.id
-            break
-    return (server_type, server_id)
-
-def flv_selection():
-    #Displays a list of all available flavors, allows the user to select one, and performs input validation.
-    flvs = pyrax.connect_to_cloudservers(region=region).list_flavors()
-    count = 1
-    for flv in flvs:
-        print count, ")", flv.name
-        count += 1
-    total_count = len(flvs)
-    while True:
-        server_flv = raw_input("\nSelect the server that you want to create by entering a number between 1 and %s.%s" % (total_count, prompt))
-        try:
-            server_flv = int(server_flv)
-            if server_flv < 1 or server_flv > total_count:
-                print "Selection out of range."
-            else:
-                break
-        except ValueError:
-            print "Not a valid selection."
-    count = 1
-    for flv in flvs:
-        if count != server_flv:
-            count += 1
-        else:
-            server_flv_type = flv.name
-            server_flv_id = flv.id
-            break
-    return (server_flv_type, server_flv_id)
+# START user prompts
 
 os.system("clear")
 print "SERVER CREATION BADASSERY\n".center(75)
 
+#set up consistent prompts
 prompt = "\n   >>> "
 ynprompt = "\n   >>>(y/N) "
 
+# Run methods to set server information
 api_initialization()
 region = region_selection()
-server_type, server_id = server_selection()
-server_flv_type, server_flv_id = flv_selection()
+server_type, server_id = server_selection(region)
+server_flv_type, server_flv_id = flv_selection(region)
 
+
+# Get number of servers to create and their naming convention
 while True:
     server_count = raw_input("\nHow many of these servers would you like to create?%s" % prompt) #Number of servers to be created.
     try:
@@ -186,7 +59,7 @@ while True:
     except ValueError:
         print "Not a valid entry."
 
-naming_con = raw_input("\nDesired naming convention prefix?%s" % prompt) #User defined naming convention.
+naming_con = raw_input("\nDesired naming convention prefix? (ex. 'www' or 'db')%s" % prompt) #User defined naming convention.
 
 #SSH Authentication
 if not os.path.isfile(os.path.expanduser("~/.ssh/id_rsa.pub")) and not os.path.isfile(os.path.expanduser("~/.ssh/id_rsa.pub")):
@@ -235,11 +108,19 @@ build_queue = Queue()
 
 while count <= server_count:
     server_name = "%s%s" % (naming_con, count)
-    try:
-        if ssh_auth == "y":
-            #server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
-            build_queue.put(server_name)
+    build_queue.put(server_name)
+    count += 1
 
+def build_server(q):
+    
+    try:
+        print "Getting job from queue..."
+        server_name = q.get()
+        if ssh_auth == "y":
+            print "Connecting to cloud to build server %s" % server_name
+            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
+            print "%s has started building" % server_name
+            #pass
         else:
             #server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
             pass
@@ -251,19 +132,45 @@ while count <= server_count:
         #print "Status:", server.status, "\n\n"
         #print "Public IP:", server.networks.get(u'public')[0]
         #print "Private IP:", server.networks.get(u'private')[0], "\n\n"
-        #server_info.write("Name: " + server.name + "\n")
-        #server_info.write("ID: " + server.id + "\n")
-        #server_info.write("Region: " + region + "\n")
-        #server_info.write("Admin Password: " + server.adminPass + "\n\n")
-        #server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
-        #server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
-        count += 1
+        server_info.write("Name: " + server.name + "\n")
+        server_info.write("ID: " + server.id + "\n")
+        server_info.write("Region: " + region + "\n")
+        server_info.write("Admin Password: " + server.adminPass + "\n\n")
+        server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
+        server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
+        #count += 1
+        print "%s has finished, ending thread" % server_name
+        q.task_done()
+        q.join()
 
     except nexc.BadRequest as e:
         print "Bad image/flavor combination. Please try again. (wah wah wah)\n"
         exit()
 
-while not build_queue.empty():
-    print build_queue.get()
+sizeq = build_queue.qsize()
+print "Size of build queue:\t%d" % sizeq
+
+
+# method for threading methods. pass it a function and a queue to work through.
+def build_threads(target,q):
+    count = 1
+    for i in range(sizeq):
+        print "setting up worker thread %d" % count
+        worker = Thread(target=target, args=(q,))
+        worker.setDaemon(True)
+        worker.start()
+        count += 1
+
+build_threads(build_server,build_queue)
 
 server_info.close()
+
+
+
+
+
+
+
+
+
+

@@ -35,3 +35,37 @@ def api_initialization():
         else:
             print "The provided credentials are not valid; please enter them below.\n"
             cred_prompt()
+
+def cred_prompt():
+    print """Before we can proceed, you will need to enter your username and API key. Protip: In the future you can authenticate with the following methods:
+
+Authenticate with ~/.rackspace_cloud_credentials File.
+
+[rackspace_cloud]
+username = my_username
+api_key = 01234567890abcdef
+
+Authenticate by passing arguments to this script.
+
+python /path/to/this/script my_username 01234567890abcdef
+    NOTE: This method trumps the ~/.rackspace_cloud_credentials file!
+"""
+    while True:
+        username = raw_input("Rackspace Username%s" % prompt)
+        api_key = raw_input("Rackspace API Key%s" % prompt)
+        try:
+            pyrax.set_credentials(username, api_key)
+            break
+        except pexc.AuthenticationFailed:
+            print "The credentials provided are not valid. Please try again."
+            continue
+    cred_save = raw_input("Would you like for me to store these credentials in ~/.rackspace_cloud_credentials for you?%s" % ynprompt)
+    if cred_save.lower().startswith("y"):
+        cred_save_file = open(os.path.join(os.path.expanduser("~"), ".rackspace_cloud_credentials"), "w")
+        cred_save_file.write("[rackspace_cloud]\n" + "username = " + username + "\napi_key = " + api_key + "\n")
+        cred_save_file.close()   
+
+
+
+
+
