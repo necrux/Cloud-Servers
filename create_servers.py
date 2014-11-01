@@ -14,12 +14,15 @@ Possible Improvements:
 Enjoy!
 """
 
-import os
+import os,pyrax,threading
 from sys import argv
-import pyrax
+from pyrax import utils
+from Queue import Queue
+from api_initialization import *
 import novaclient.exceptions as nexc #Used to catch exceptions from novaclient. Reference: https://community.rackspace.com/developers/f/7/t/894
 import pyrax.exceptions as pexc #Used to catch exceptions from pyrax. Reference: https://github.com/rackspace/pyrax/issues/83
 
+"""
 def api_initialization():
     pyrax.set_setting("identity_type", "rackspace")
     try:
@@ -47,6 +50,7 @@ def api_initialization():
         else:
             print "The provided credentials are not valid; please enter them below.\n"
             cred_prompt()
+"""
 
 def cred_prompt():
     print """Before we can proceed, you will need to enter your username and API key. Protip: In the future you can authenticate with the following methods:
@@ -227,29 +231,39 @@ print "\n"
 #Server Creation Section
 server_info = open(os.path.join(os.path.expanduser("~"), "Server_Info.txt"), "a")
 count = 1
+build_queue = Queue()
+
 while count <= server_count:
     server_name = "%s%s" % (naming_con, count)
     try:
         if ssh_auth == "y":
-            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
+            #server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
+            build_queue.put(server_name)
+
         else:
-            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
+            #server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
+            pass
         #pyrax.utils.wait_for_build(server, "status", ["ACTIVE", "ERROR"], interval=20, callback=None, attempts=0, verbose=False, verbose_atts="progress")
-        print "Name:", server.name
-        print "Root Password:", server.adminPass
-        print "ID:", server.id
-        print "Region:", region
-        print "Status:", server.status, "\n\n"
+        #print "Name:", server.name
+        #print "Root Password:", server.adminPass
+        #print "ID:", server.id
+        #print "Region:", region
+        #print "Status:", server.status, "\n\n"
         #print "Public IP:", server.networks.get(u'public')[0]
         #print "Private IP:", server.networks.get(u'private')[0], "\n\n"
-        server_info.write("Name: " + server.name + "\n")
-        server_info.write("ID: " + server.id + "\n")
-        server_info.write("Region: " + region + "\n")
-        server_info.write("Admin Password: " + server.adminPass + "\n\n")
+        #server_info.write("Name: " + server.name + "\n")
+        #server_info.write("ID: " + server.id + "\n")
+        #server_info.write("Region: " + region + "\n")
+        #server_info.write("Admin Password: " + server.adminPass + "\n\n")
         #server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
         #server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
         count += 1
+
     except nexc.BadRequest as e:
         print "Bad image/flavor combination. Please try again. (wah wah wah)\n"
         exit()
+
+while not build_queue.empty():
+    print build_queue.get()
+
 server_info.close()
