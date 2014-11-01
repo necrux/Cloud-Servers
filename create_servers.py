@@ -142,8 +142,8 @@ def build_server(q):
         server_info.write("ID: " + server.id + "\n")
         server_info.write("Region: " + region + "\n")
         server_info.write("Admin Password: " + server.adminPass + "\n\n")
-        server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
-        server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
+        #server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
+        #server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
         q.task_done()
         print "%s has finished, ending thread" % server_name
         
