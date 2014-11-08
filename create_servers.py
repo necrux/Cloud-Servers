@@ -23,6 +23,7 @@ from pyrax import utils
 from Queue import Queue
 from api_initialization import *
 from server_selection import *
+#from build_server import *
 from threading import Thread
 import novaclient.exceptions as nexc #Used to catch exceptions from novaclient. Reference: https://community.rackspace.com/developers/f/7/t/894
 import pyrax.exceptions as pexc #Used to catch exceptions from pyrax. Reference: https://github.com/rackspace/pyrax/issues/83
@@ -80,6 +81,11 @@ if ssh_auth == "y":
         print "SSH key [name] already exists on server."
 
 #Verification Section
+wait_for_build = raw_input("Would you like to let the threads wait for build completion?%s" % prompt)
+if not wait_for_build.lower().startswith("y"):
+    wait_for_build = False
+
+
 print "\nYou have chosen to create %s '%s' '%s' server(s) with the naming convention '%s[1-%s]' in %s." % (server_count, server_flv_type, server_type, naming_con, server_count, region)
 print "    Note: After build completetion, server details can be found in ~/Server_Info.txt."
 confirm = raw_input("Is this correct?%s" % ynprompt)
@@ -111,6 +117,7 @@ while count <= server_count:
     build_queue.put(server_name)
     count += 1
 
+
 def build_server(q):
     
     try:
@@ -118,32 +125,32 @@ def build_server(q):
         server_name = q.get()
         if ssh_auth == "y":
             print "Connecting to cloud to build server %s" % server_name
-            try:
-                print "print inside of try - before pyrax"
-                server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
-                print "print inside of try - after pyrax"
-            except:
-                print "Something went wrong connecting to cloud control"
+            print "print inside of try - before pyrax"
+            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, ssh_auth)
+            print "print inside of try - after pyrax"
 
             print "%s has started building" % server_name
             #pass
         else:
-            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
+            #server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
             #pass
-        #pyrax.utils.wait_for_build(server, "status", ["ACTIVE", "ERROR"], interval=20, callback=None, attempts=0, verbose=False, verbose_atts="progress")
-        #print "Name:", server.name
-        #print "Root Password:", server.adminPass
-        #print "ID:", server.id
-        #print "Region:", region
-        #print "Status:", server.status, "\n\n"
-        #print "Public IP:", server.networks.get(u'public')[0]
-        #print "Private IP:", server.networks.get(u'private')[0], "\n\n"
+            print "Name:", server.name
+            print "Root Password:", server.adminPass
+            print "ID:", server.id
+            print "Region:", region
+            print "Status:", server.status, "\n\n"
+
         server_info.write("Name: " + server.name + "\n")
         server_info.write("ID: " + server.id + "\n")
         server_info.write("Region: " + region + "\n")
         server_info.write("Admin Password: " + server.adminPass + "\n\n")
-        #server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
-        #server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
+
+        if wait_for_build == True:
+            pyrax.utils.wait_for_build(server, "status", ["ACTIVE", "ERROR"], interval=20, callback=None, attempts=0, verbose=False, verbose_atts="progress")
+            print "Public IP:", server.networks.get(u'public')[0]
+            print "Private IP:", server.networks.get(u'private')[0], "\n\n"
+            server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
+            server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
         q.task_done()
         print "%s has finished, ending thread" % server_name
         
@@ -152,21 +159,25 @@ def build_server(q):
         print "Bad image/flavor combination. Please try again. (wah wah wah)\n"
         exit()
 
-sizeq = build_queue.qsize()
-print "Size of build queue:\t%d" % sizeq
-
-
 # method for threading methods. pass it a function and a queue to work through.
-def build_threads(target,q):
+def build_threads():
     count = 1
     for i in range(sizeq):
         #print "setting up worker thread %d" % count
-        worker = Thread(target=target, args=(q,))
+        worker = Thread(target=build_server, args=(build_queue,))
         worker.setDaemon(True)
         worker.start()
         count += 1
 
-build_threads(build_server,build_queue)
+sizeq = build_queue.qsize()
+print "Size of build queue:\t%d" % sizeq
+
+#server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, key_name="my_key")
+
+#build_vars = {'method':build_server,'q':build_queue,'qsize':sizeq,'region':region,'srv_id':server_id,'flv_id':server_flv_id,'auth':ssh_auth}
+
+
+build_threads()
 
 build_queue.join()
 
