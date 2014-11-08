@@ -82,7 +82,12 @@ if ssh_auth == "y":
 
 #Verification Section
 wait_for_build = raw_input("Would you like to let the threads wait for build completion?%s" % prompt)
-if not wait_for_build.lower().startswith("y"):
+if wait_for_build.lower().startswith("y"):
+    wait_for_build = True
+    wait_timeout = raw_input("How long should we wait for the build (in seconds)?")
+    wait_timeout = int(wait_timeout)
+
+else:
     wait_for_build = False
 
 
@@ -118,27 +123,25 @@ while count <= server_count:
     count += 1
 
 
-def build_server():
+def build_server(build_queue):
     
     try:
         print "Getting job from queue..."
         server_name = build_queue.get()
         if ssh_auth == "y":
             print "Connecting to cloud to build server %s" % server_name
-            print "print inside of try - before pyrax"
             server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id, ssh_auth)
-            print "print inside of try - after pyrax"
-
             print "%s has started building" % server_name
             #pass
         else:
             server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
             #pass
-            print "Name:", server.name
-            print "Root Password:", server.adminPass
-            print "ID:", server.id
-            print "Region:", region
-            print "Status:", server.status, "\n\n"
+            
+        print "Name:", server.name
+        print "Root Password:", server.adminPass
+        print "ID:", server.id
+        print "Region:", region
+        print "Status:", server.status, "\n\n"
 
         server_info.write("Name: " + server.name + "\n")
         server_info.write("ID: " + server.id + "\n")
@@ -146,12 +149,18 @@ def build_server():
         server_info.write("Admin Password: " + server.adminPass + "\n\n")
 
         if wait_for_build == True:
-            pyrax.utils.wait_for_build(server, "status", ["ACTIVE", "ERROR"], interval=20, callback=None, attempts=0, verbose=False, verbose_atts="progress")
-            print "Public IP:", server.networks.get(u'public')[0]
-            print "Private IP:", server.networks.get(u'private')[0], "\n\n"
-            server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
-            server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
-        q.task_done()
+
+            try:
+                #pyrax.utils.wait_until(server, "status", ["ACTIVE", "ERROR"], interval=5, callback=None, attempts=0, verbose=False, verbose_atts="progress")
+                pyrax.utils.wait_until(server, 'status', ('ACTIVE', 'ERROR'),
+                                   interval=5, attempts=wait_timeout/5)
+                print "Public IP:", server.networks.get(u'public')[0]
+                print "Private IP:", server.networks.get(u'private')[0], "\n\n"
+                server_info.write("Public IP: " + server.networks.get(u'public')[0] + "\n")
+                server_info.write("Private IP: " + server.networks.get(u'private')[0] + "\n\n")
+            except:
+                print "Pyrax wait for build unsuccessful. Please reference your cloud panel for server IP's"
+            build_queue.task_done()
         print "%s has finished, ending thread" % server_name
         
 
