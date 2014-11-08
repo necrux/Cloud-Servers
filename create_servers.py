@@ -118,11 +118,11 @@ while count <= server_count:
     count += 1
 
 
-def build_server(q):
+def build_server():
     
     try:
         print "Getting job from queue..."
-        server_name = q.get()
+        server_name = build_queue.get()
         if ssh_auth == "y":
             print "Connecting to cloud to build server %s" % server_name
             print "print inside of try - before pyrax"
@@ -132,7 +132,7 @@ def build_server(q):
             print "%s has started building" % server_name
             #pass
         else:
-            #server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
+            server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
             #pass
             print "Name:", server.name
             print "Root Password:", server.adminPass
@@ -163,8 +163,8 @@ def build_server(q):
 def build_threads():
     count = 1
     for i in range(sizeq):
-        #print "setting up worker thread %d" % count
-        worker = Thread(target=build_server, args=(build_queue,))
+        print "setting up worker thread %d" % count
+        worker = Thread(target=build_server,args=(build_queue,))
         worker.setDaemon(True)
         worker.start()
         count += 1
