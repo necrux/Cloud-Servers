@@ -43,6 +43,7 @@ print "SERVER CREATION BADASSERY\n".center(75)
 #set up consistent prompts
 prompt = "\n   >>> "
 ynprompt = "\n   >>>(y/N) "
+breakpoint = "-------------------------------------------------------\n"
 
 # Run methods to set server information
 api_initialization()
@@ -126,7 +127,6 @@ while count <= server_count:
 def build_server(build_queue):
     # create list of server information to keep each build contained to it's own thread
     build_details = []
-    network_stuff = []
     try:
         print "Getting job from queue..."
         server_name = build_queue.get()
@@ -139,11 +139,11 @@ def build_server(build_queue):
             server = pyrax.connect_to_cloudservers(region=region).servers.create(server_name, server_id, server_flv_id)
             #pass
 
-
+        build_details.append(breakpoint)
         build_details.append("Name: " + server.name)
         build_details.append("ID: " + server.id)
         build_details.append("Region: " + region)
-        build_details.append("Admin Password: " + server.adminPass + "\n")
+        build_details.append("Admin Password: " + server.adminPass)
 
 
         if wait_for_build == True:
@@ -151,21 +151,23 @@ def build_server(build_queue):
             try:
                 #Pass tuple of server status, not list
                 #pyrax.utils.wait_until(server, "status", ["ACTIVE", "ERROR"], interval=5, callback=None, attempts=0, verbose=False, verbose_atts="progress")
-                pyrax.utils.wait_until(server, 'status', ('ACTIVE', 'ERROR'),interval=5, attempts=wait_timeout/5)
+                pyrax.utils.wait_until(server, 'status', ('ACTIVE', 'ERROR'), interval=5, attempts=wait_timeout/5)
                 build_details.append("Network information:")
                 for i in server.networks.get(u'public'):
                     build_details.append("Public IP: " + i)
                 #build_details.append("Public IP: " + server.networks.get(u'public')[0])
-                build_details.append("Private IP: " + server.networks.get(u'private')[0] + "\n")
-                for i in server.networks.get(u'public'):
-                    build_details.append(i)
+                build_details.append("Private IP: " + server.networks.get(u'private')[0])
                 
             except:
                 print "Pyrax wait for build unsuccessful. Please reference your cloud panel for server IP's"
 
+        print breakpoint
+        server_info.write(breakpoint)
         for info in build_details:
             print info
             server_info.write(info + "\n")
+        print breakpoint
+        server_info.write(breakpoint)
 
         #server_info.write(build_details)
         #print build_details
