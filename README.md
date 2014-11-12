@@ -1,24 +1,13 @@
 Cloud-Servers
 =============
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 Written by: wes<br>
-3/7/2014
-=======
-=======
->>>>>>> b910b66ad0852dc78c6c68a0316a0b8d157fff4f
-Written by: necrux<br>
 3/7/2014<br>
 Forked by jay13yaj<br>
 10/11/2014
-<<<<<<< HEAD
->>>>>>> 2f395449f46c0bee94ea48243287f6663aaf648b
-=======
 
 Syntax: python create_servers.py<br>
 	the prompts will guide you through the creation process.
->>>>>>> b910b66ad0852dc78c6c68a0316a0b8d157fff4f
 
 This program utilizes Rackspace's Python SDK (pyrax) to create a specified number of servers. There are currently 3 methods of authenticating with the API, and this program also handles SSH auth for servers.
 <br><br>
