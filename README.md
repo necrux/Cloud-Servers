@@ -6,7 +6,7 @@ Written by: necrux<br>
 Forked by jay13yaj<br>
 10/11/2014
 
-Syntax: python create_servers.py
+Syntax: python create_servers.py<br>
 	the prompts will guide you through the creation process.
 
 This program utilizes Rackspace's Python SDK (pyrax) to create a specified number of servers. There are currently 3 methods of authenticating with the API, and this program also handles SSH auth for servers.
