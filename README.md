@@ -3,8 +3,6 @@ Cloud-Servers
 
 Written by: wes<br>
 3/7/2014<br>
-Forked by jay13yaj<br>
-10/11/2014
 
 Syntax: python create_servers.py<br>
 	the prompts will guide you through the creation process.
